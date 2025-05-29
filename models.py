@@ -21,6 +21,11 @@ class Tweet(BaseModel):
     isRetweeted: bool
     
 class TweetsResponse(BaseModel):
-    status: bool
+    status: str
     count: int
     data: List[Tweet]
+
+
+class APIResponse(BaseModel):
+    status: str
+    data: dict

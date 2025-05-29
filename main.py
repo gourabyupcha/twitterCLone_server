@@ -10,6 +10,7 @@ import uuid
 import random
 from models import UserCreate, TweetCreate, Tweet, TweetsResponse
 from db import users_collection, tweets_collection
+from pymongo.errors import PyMongoError
 
 app = FastAPI()
 
@@ -56,16 +57,16 @@ def create_user(user: UserCreate):
     if existing_user:
         raise HTTPException(status_code=400, detail="Username already exists")
 
-    # Generate API key and hash password
-    api_key = secrets.token_hex(16)
+    try:
+        api_key = secrets.token_hex(16)
+        users_collection.insert_one({
+            "username": user.username,
+            "api_key": api_key
+        })
+        return {"status":"success",  "data":{"message": "User created", "api_key": api_key}}
 
-    # Insert new user into DB
-    users_collection.insert_one({
-        "username": user.username,
-        "api_key": api_key
-    })
-
-    return {"message": "User created", "api_key": api_key}
+    except PyMongoError as e:
+        return {"status": "error", "data": {"message": str(e), "api_key": ""}}
 
 
 
@@ -87,7 +88,7 @@ def post_tweet(
         "username": tweet.username,
         "handle": f"@{tweet.username.lower()}",
         "content": tweet.text,
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now().isoformat(),
         "likes": random.randint(0, 100),
         "retweets": random.randint(0, 50),
         "replies": random.randint(0, 20),
@@ -95,9 +96,11 @@ def post_tweet(
         "isRetweeted": random.choice([True, False])
     }
 
-    tweets_collection.insert_one(tweet_record)
-
-    return {"message": "Tweet posted", "tweet_id": tweet_id}
+    try:
+        tweets_collection.insert_one(tweet_record)
+        return {"status": "success", "data": {"message": "Tweet posted", "tweet_id": tweet_id }}
+    except PyMongoError as e :
+        return {"status": "error", "data": {"message": f"{str(e)}" }}
 
 
 
@@ -107,19 +110,26 @@ def get_all_tweets(
     page: int = Query(1, ge=1),
     limit: int = Query(10, ge=1, le=100)
 ):
-    skip = (page - 1) * limit
-    total = tweets_collection.count_documents({})
-    tweet_docs = list(
-        tweets_collection.find({}, {"_id": 0})
-        .sort("timestamp", -1)
-        .skip(skip)
-        .limit(limit)
-    )
-    return TweetsResponse(
-        status=True,
-        count=total,
-        data=tweet_docs
-    )
+    try:
+        skip = (page - 1) * limit
+        total = tweets_collection.count_documents({})
+        tweet_docs = list(
+            tweets_collection.find({}, {"_id": 0})
+            .sort("timestamp", -1)
+            .skip(skip)
+            .limit(limit)
+        )
+        return TweetsResponse(
+            status="success",
+            count=total,
+            data=tweet_docs
+        )
+    except PyMongoError as e:
+        return TweetsResponse(
+            status="error",
+            count=total,
+            data=tweet_docs
+        )
 
 
 
@@ -139,7 +149,7 @@ def delete_tweet(tweet_id: int, api_user: str = Depends(verify_api_key)):
     if result.deleted_count == 0:
         raise HTTPException(status_code=500, detail="Failed to delete tweet")
 
-    return {"message": "Tweet deleted", "tweet_id": tweet_id}
+    return { "status": "success", "data": {"message": "Tweet deleted", "tweet_id": tweet_id}}
 
 
 
