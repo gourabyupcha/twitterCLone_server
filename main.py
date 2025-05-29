@@ -6,7 +6,7 @@ from utils import load_db, save_db, get_random_timestamp
 from datetime import datetime
 import secrets
 import uvicorn
-import uuid, os
+import uuid
 import random
 from models import UserCreate, TweetCreate, Tweet, TweetsResponse
 from db import users_collection, tweets_collection
@@ -43,6 +43,11 @@ def verify_api_key(api_key: str = Header(...)):
 # -------------------------
 # Routes
 # -------------------------
+
+@app.get("/")
+def read_root():
+    return {"message": "Welcome to the API!"}
+
 
 @app.post("/create_user")
 def create_user(user: UserCreate):
@@ -102,7 +107,6 @@ def get_all_tweets(
     page: int = Query(1, ge=1),
     limit: int = Query(10, ge=1, le=100)
 ):
-    print(os.getenv("MONGO_URI"))
     skip = (page - 1) * limit
     total = tweets_collection.count_documents({})
     tweet_docs = list(

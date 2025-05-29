@@ -3,4 +3,5 @@ uvicorn
 pydantic
 dotenv
 pymongo
+dnspython
 python-multipart
