@@ -12,6 +12,7 @@ load_dotenv()  # Loads environment variables from .env file
 # Initialize MongoDB client
 client = MongoClient(os.getenv("MONGO_URI"), 
     tls=True,
+    tlsAllowInvalidCertificates=False,
     tlsCAFile=certifi.where())
 db = client["twitter_clone_db"] 
 
