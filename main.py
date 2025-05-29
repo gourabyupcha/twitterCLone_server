@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Header, Depends
+from fastapi import FastAPI, HTTPException, Header, Depends, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional, List, Dict, Any
@@ -8,7 +8,8 @@ import secrets
 import uvicorn
 import uuid
 import random
-
+from models import UserCreate, TweetCreate, Tweet, TweetsResponse
+from db import users_collection, tweets_collection
 
 app = FastAPI()
 
@@ -26,51 +27,17 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-API_KEYS = {}  # user: api_key (in-memory)
-
-# -------------------------
-# Models
-# -------------------------
-
-class UserCreate(BaseModel):
-    username: str
-    password: str
-
-class TweetCreate(BaseModel):
-    username: str
-    text: str
-
-class Tweet(BaseModel):
-    id: int
-    username: str
-    handle: str
-    content: str
-    timestamp: str
-    likes: int
-    retweets: int
-    replies: int
-    isLiked: bool
-    isRetweeted: bool
-    
-class TweetsResponse(BaseModel):
-    status: bool
-    count: int
-    data: List[Tweet]
 
 # -------------------------
 # Auth Dependency
 # -------------------------
 
-def verify_api_key(x_api_key: Optional[str] = Header(None)) -> str:
-    db = load_db()
-    if not x_api_key:
-        raise HTTPException(status_code=401, detail="Missing API Key")
-    
-    for user in db["users"]:
-        if user.get("api_key") == x_api_key:
-            return user["username"]
-    
-    raise HTTPException(status_code=401, detail="Invalid API Key")
+def verify_api_key(api_key: str = Header(...)):
+    user = users_collection.find_one({"api_key": api_key})
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid API Key")
+    return user["username"]
+
 
 
 # -------------------------
@@ -79,19 +46,20 @@ def verify_api_key(x_api_key: Optional[str] = Header(None)) -> str:
 
 @app.post("/create_user")
 def create_user(user: UserCreate):
-    db = load_db()
-    for u in db["users"]:
-        if u["username"] == user.username:
-            raise HTTPException(status_code=400, detail="Username already exists")
+    # Check for existing user
+    existing_user = users_collection.find_one({"username": user.username})
+    if existing_user:
+        raise HTTPException(status_code=400, detail="Username already exists")
 
+    # Generate API key and hash password
     api_key = secrets.token_hex(16)
-    db["users"].append({
+
+    # Insert new user into DB
+    users_collection.insert_one({
         "username": user.username,
-        "password": user.password,
         "api_key": api_key
     })
 
-    save_db(db)
     return {"message": "User created", "api_key": api_key}
 
 
@@ -104,37 +72,25 @@ def post_tweet(
     tweet: TweetCreate,
     api_user: str = Depends(verify_api_key)
 ):
-    # Check if API key's username matches the posted tweet username
     if tweet.username != api_user:
         raise HTTPException(status_code=403, detail="API Key does not match username")
 
-    # Proceed with your tweet creation logic...
-    db = load_db()
-    tweet_id = uuid.uuid4().int >> 96  # random 32-bit int id
-
-    # Random stats, timestamp, etc. (same as before)
-    likes = random.randint(0, 100)
-    retweets = random.randint(0, 50)
-    replies = random.randint(0, 20)
-    isLiked = random.choice([True, False])
-    isRetweeted = random.choice([True, False])
-    timestamp = datetime.utcnow().isoformat()
+    tweet_id = uuid.uuid4().int >> 96  # Random 32-bit int
 
     tweet_record = {
         "id": tweet_id,
         "username": tweet.username,
         "handle": f"@{tweet.username.lower()}",
         "content": tweet.text,
-        "timestamp": timestamp,
-        "likes": likes,
-        "retweets": retweets,
-        "replies": replies,
-        "isLiked": isLiked,
-        "isRetweeted": isRetweeted
+        "timestamp": datetime.utcnow().isoformat(),
+        "likes": random.randint(0, 100),
+        "retweets": random.randint(0, 50),
+        "replies": random.randint(0, 20),
+        "isLiked": random.choice([True, False]),
+        "isRetweeted": random.choice([True, False])
     }
 
-    db["tweets"].append(tweet_record)
-    save_db(db)
+    tweets_collection.insert_one(tweet_record)
 
     return {"message": "Tweet posted", "tweet_id": tweet_id}
 
@@ -142,14 +98,45 @@ def post_tweet(
 
 
 @app.get("/tweets", response_model=TweetsResponse)
-def get_all_tweets():
-    db = load_db()
-    tweets = db["tweets"]
+def get_all_tweets(
+    page: int = Query(1, ge=1),
+    limit: int = Query(10, ge=1, le=100)
+):
+    skip = (page - 1) * limit
+    total = tweets_collection.count_documents({})
+    tweet_docs = list(
+        tweets_collection.find({}, {"_id": 0})
+        .sort("timestamp", -1)
+        .skip(skip)
+        .limit(limit)
+    )
     return TweetsResponse(
         status=True,
-        count=len(tweets),
-        data=tweets
+        count=total,
+        data=tweet_docs
     )
+
+
+
+
+@app.delete("/tweet/{tweet_id}")
+def delete_tweet(tweet_id: int, api_user: str = Depends(verify_api_key)):
+    tweet = tweets_collection.find_one({"id": tweet_id})
+
+    if not tweet:
+        raise HTTPException(status_code=404, detail="Tweet not found")
+
+    if tweet["username"] != api_user:
+        raise HTTPException(status_code=403, detail="You are not authorized to delete this tweet")
+
+    result = tweets_collection.delete_one({"id": tweet_id})
+
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=500, detail="Failed to delete tweet")
+
+    return {"message": "Tweet deleted", "tweet_id": tweet_id}
+
+
 
 @app.get("/tweet/{tweet_id}", response_model=Tweet, dependencies=[Depends(verify_api_key)])
 def get_tweet_by_id(tweet_id: int):
@@ -158,6 +145,9 @@ def get_tweet_by_id(tweet_id: int):
         if tweet["id"] == tweet_id:
             return tweet
     raise HTTPException(status_code=404, detail="Tweet not found")
+
+
+
 
 # -------------------------
 # Run with uvicorn
