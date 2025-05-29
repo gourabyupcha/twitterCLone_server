@@ -1,7 +1,7 @@
 # db.py
 
-import logging
-logging.basicConfig(level=logging.DEBUG)
+# import logging
+# logging.basicConfig(level=logging.DEBUG)
 
 from pymongo import MongoClient
 import os, certifi
@@ -12,7 +12,7 @@ load_dotenv()  # Loads environment variables from .env file
 # Initialize MongoDB client
 client = MongoClient(os.getenv("MONGO_URI"), 
     tls=True,
-    tlsAllowInvalidCertificates=True,
+    # tlsAllowInvalidCertificates=True,
     tlsCAFile=certifi.where())
 db = client["twitter_clone_db"] 
 
