@@ -1,0 +1,124 @@
+{
+  "users": [
+    {
+      "username": "alice",
+      "password": "secret123",
+      "api_key": "9aa79f19248e5c12636b02659026d967"
+    },
+    {
+      "username": "john",
+      "password": "secret12356",
+      "api_key": "f27ee6dcf3671047885da4b65876cc79"
+    }
+  ],
+  "tweets": [
+    {
+      "id": 2584631865,
+      "username": "john",
+      "handle": "@john",
+      "content": "Testing a new tweet 3 from a user john ",
+      "timestamp": "2025-05-26T00:27:17.812506",
+      "likes": 50,
+      "retweets": 26,
+      "replies": 7,
+      "isLiked": true,
+      "isRetweeted": false
+    },
+    {
+      "id": 3004203466,
+      "username": "john",
+      "handle": "@john",
+      "content": "Testing a new tweet 1 from a user john ",
+      "timestamp": "2025-05-22T08:44:36.032657",
+      "likes": 23,
+      "retweets": 30,
+      "replies": 2,
+      "isLiked": true,
+      "isRetweeted": true
+    },
+    {
+      "id": 3205878358,
+      "username": "alice",
+      "handle": "@alice",
+      "content": "Testing a new tweet 1 from a user john ",
+      "timestamp": "2025-05-27T04:17:42.904522",
+      "likes": 80,
+      "retweets": 7,
+      "replies": 11,
+      "isLiked": false,
+      "isRetweeted": false
+    },
+    {
+      "id": 1613537977,
+      "username": "alice",
+      "handle": "@alice",
+      "content": "Testing a new tweet 1 from a user alice ",
+      "timestamp": "2025-05-28T12:13:47.649962",
+      "likes": 78,
+      "retweets": 21,
+      "replies": 7,
+      "isLiked": false,
+      "isRetweeted": true
+    },
+    {
+      "id": 1428179172,
+      "username": "alice",
+      "handle": "@alice",
+      "content": "Breaking: New JavaScript framework promises to solve all your problems and create new ones you didnt know you had!",
+      "timestamp": "2025-05-28T12:30:23.317366",
+      "likes": 53,
+      "retweets": 36,
+      "replies": 5,
+      "isLiked": true,
+      "isRetweeted": true
+    },
+    {
+      "id": 4055317656,
+      "username": "john",
+      "handle": "@john",
+      "content": "Just deployed my new website! Check it out at my profile. #webdev #coding",
+      "timestamp": "2025-05-29T06:22:03.622445",
+      "likes": 3,
+      "retweets": 49,
+      "replies": 14,
+      "isLiked": false,
+      "isRetweeted": false
+    },
+    {
+      "id": 80109853,
+      "username": "john",
+      "handle": "@john",
+      "content": "Just deployed my new website! Check it out at my profile. #webdev #coding",
+      "timestamp": "2025-05-29T06:57:35.516963",
+      "likes": 86,
+      "retweets": 6,
+      "replies": 19,
+      "isLiked": false,
+      "isRetweeted": true
+    },
+    {
+      "id": 2915061554,
+      "username": "john",
+      "handle": "@john",
+      "content": "this is a test tweet from me ",
+      "timestamp": "2025-05-29T06:58:03.806419",
+      "likes": 36,
+      "retweets": 30,
+      "replies": 10,
+      "isLiked": false,
+      "isRetweeted": true
+    },
+    {
+      "id": 2786956864,
+      "username": "john",
+      "handle": "@john",
+      "content": "this is a test tweet from me ",
+      "timestamp": "2025-05-29T06:58:06.107277",
+      "likes": 32,
+      "retweets": 35,
+      "replies": 9,
+      "isLiked": true,
+      "isRetweeted": true
+    }
+  ]
+}
