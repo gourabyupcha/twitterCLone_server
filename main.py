@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional, List, Dict, Any
 from utils import load_db, save_db, get_random_timestamp
-from datetime import datetime
+from datetime import datetime, timezone
 import secrets
 import uvicorn
 import uuid
@@ -88,7 +88,7 @@ def post_tweet(
         "username": tweet.username,
         "handle": f"@{tweet.username.lower()}",
         "content": tweet.text,
-        "timestamp": datetime.now().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
         "likes": random.randint(0, 100),
         "retweets": random.randint(0, 50),
         "replies": random.randint(0, 20),
