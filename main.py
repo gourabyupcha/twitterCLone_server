@@ -8,9 +8,10 @@ import secrets
 import uvicorn
 import uuid
 import random
-from models import UserCreate, TweetCreate, Tweet, TweetsResponse
+from models import UserCreate, TweetCreate, Tweet, TweetsResponse, QueryRequest
 from db import users_collection, tweets_collection
 from pymongo.errors import PyMongoError
+from agent import SupervisorAgent
 
 app = FastAPI()
 
@@ -160,6 +161,17 @@ def get_tweet_by_id(tweet_id: int):
         if tweet["id"] == tweet_id:
             return tweet
     raise HTTPException(status_code=404, detail="Tweet not found")
+
+
+
+@app.post("/process-prompt")
+async def process_request(request: QueryRequest):
+    try:
+        supervisor = SupervisorAgent()
+        result = await supervisor.process_request(request.prompt)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 

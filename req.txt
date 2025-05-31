@@ -6,3 +6,7 @@ pymongo[srv]
 certifi
 dnspython
 python-multipart
+sqlalchemy
+langchain
+langchain-groq
+httpx

@@ -29,3 +29,6 @@ class TweetsResponse(BaseModel):
 class APIResponse(BaseModel):
     status: str
     data: dict
+    
+class QueryRequest(BaseModel):
+    prompt: str
