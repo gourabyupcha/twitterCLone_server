@@ -10,3 +10,4 @@ sqlalchemy
 langchain
 langchain-groq
 httpx
+psycopg2-binary
