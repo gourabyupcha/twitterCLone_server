@@ -1,0 +1,8 @@
+bearer = AAAAAAAAAAAAAAAAAAAAANRF2AEAAAAAGbj9gp6n8v3spUjkBTEdCrykTiQ%3DIUFgjUwqVyHdJpOikcFks629eO4WtSMJU66JxKARQHWkGvDh5y
+api_key = VlRjjs4X1hAfKCcNvC5M3RC4z
+api_key_secret = y08vzxaxeSDyijZS1x9DGGM5mxbNgibinhcogLD7zz3yLMGUFQ
+access_token = 1927635596677177344-t0RcatjrIC09O5vaZqSELOF3XwxQi2
+access_token_secret = FsknXBbd83JAGjShjIfMHGVjxCQvDBgyTF90JnEOCuQxo
+
+mongo_admin = gourabyupcha
+admin_pass = DzuaVJEuJ5ppT9Z9
