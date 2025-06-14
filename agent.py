@@ -8,6 +8,9 @@ from typing import List, Dict, Any
 import httpx
 import json,os
 from dotenv import load_dotenv
+from langchain_core.runnables import RunnableSequence
+from langchain.prompts import PromptTemplate
+
 
 load_dotenv()  # Loads environment variables from .env file
 
@@ -140,6 +143,7 @@ class SupervisorAgent:
         except Exception as e:
             raise Exception(f"Failed to clean SQL query: {str(e)}")
 
+
     async def process_request(self, prompt: str) -> Dict[str, Any]:
         try:
             sql_prompt = f"""
@@ -154,37 +158,39 @@ class SupervisorAgent:
             6. Wrap UNION in parentheses
             7. End with semicolon
             8. No comments or explanations
-            
+
             Example: SELECT text FROM tweets WHERE likes > 100 ORDER BY timestamp DESC LIMIT 5;
             """
-            
-            sql_chain = LLMChain(
-                llm=self.llm,
-                prompt=PromptTemplate.from_template(sql_prompt)
-            )
-            sql_query = sql_chain.run({})
-            
+
+            # Updated LangChain usage
+            prompt_template = PromptTemplate.from_template(sql_prompt)
+            sql_chain = prompt_template | self.llm
+
+            # Invoke and extract plain text
+            sql_response = sql_chain.invoke({})
+            sql_query = sql_response.content  # This is the actual SQL string
+
             # Clean the SQL query
             clean_sql = self.clean_sql_query(sql_query)
-            
-            # 2. Execute SQL and get data
+
+            # Execute SQL and get data
             data = self.sql_agent.execute_query(clean_sql)
-            
-            # 3. Generate post content
+
+            # Generate post content
             post_content = self.post_generator.generate_post(data, prompt)
-            
-            # 4. Post the content
+
+            # Post the content
             post_result = await self.poster.post_content(post_content)
-            
+
             return {
                 "sql_query": clean_sql,
                 "data": data,
                 "generated_post": post_content,
                 "post_result": post_result
             }
+
         except Exception as e:
             raise Exception(f"Failed to process request: {str(e)}")
-
 # @app.post("/process")
 # async def process_request(request: QueryRequest):
 #     try:

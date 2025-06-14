@@ -1,4 +1,4 @@
-__pycache__
-.venv
-APIS.txt
-.env
+*.venv
+*.env
+__pycache__/
+*.pyc
