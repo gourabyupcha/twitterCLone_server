@@ -105,21 +105,32 @@ class PosterAgent:
     def __init__(self):
         self.endpoint = Config.POST_ENDPOINT
         self.headers = {
-            "api-key": "286b3bca733bfdb0e30e3ca315b1ffb4",
             "Content-Type": "application/json"
         }
     
-    async def post_content(self, content: str) -> Dict:
+    async def post_content(self, content: str, api) -> Dict:
         try:
             async with httpx.AsyncClient() as client:
                 response = await client.post(
                     self.endpoint,
-                    headers=self.headers,
+                    headers={
+                        "api-key": api,
+                        "Content-Type": "application/json"   
+                    },
                     json={
-                        "username": "john",
+                        "username": api.split('_')[0],
                         "text": content
                     }
                 )
+                if response.status_code != 200:
+                    try:
+                        # Try to parse JSON and extract the detail message
+                        error_detail = response.json().get("detail", "Unknown error")
+                    except Exception:
+                        error_detail = response.text  # fallback to raw text
+
+                    raise Exception({error_detail})
+                
                 return response.json()
         except Exception as e:
             raise Exception(f"Failed to post content: {str(e)}")
@@ -144,7 +155,7 @@ class SupervisorAgent:
             raise Exception(f"Failed to clean SQL query: {str(e)}")
 
 
-    async def process_request(self, prompt: str) -> Dict[str, Any]:
+    async def process_request(self, prompt: str, api:str) -> Dict[str, Any]:
         try:
             sql_prompt = f"""
             Schema: {self.sql_agent.get_schema_info()}
@@ -180,8 +191,8 @@ class SupervisorAgent:
             post_content = self.post_generator.generate_post(data, prompt)
 
             # Post the content
-            post_result = await self.poster.post_content(post_content)
-
+            post_result = await self.poster.post_content(post_content, api)
+            
             return {
                 "sql_query": clean_sql,
                 "data": data,

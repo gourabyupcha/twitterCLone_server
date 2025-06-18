@@ -31,6 +31,9 @@ app.add_middleware(
 )
 
 
+DEFAULT_USAGE_LIMIT = 1000
+
+
 # -------------------------
 # Auth Dependency
 # -------------------------
@@ -52,6 +55,7 @@ def read_root():
     return {"message": "Welcome to the API!"}
 
 
+
 @app.post("/create_user")
 def create_user(user: UserCreate):
     # Check for existing user
@@ -60,16 +64,28 @@ def create_user(user: UserCreate):
         raise HTTPException(status_code=400, detail="Username already exists")
 
     try:
-        api_key = secrets.token_hex(16)
-        users_collection.insert_one({
+        api_key = f"{user.username}_{secrets.token_hex(16)}"
+
+        user_doc = {
             "username": user.username,
-            "api_key": api_key
-        })
-        return {"status":"success",  "data":{"message": "User created", "api_key": api_key}}
+            "api_key": api_key,
+            "usage_count": 0,              # How many times the API key has been used
+            "usage_limit": DEFAULT_USAGE_LIMIT  # Max allowed uses
+        }
+
+        users_collection.insert_one(user_doc)
+
+        return {
+            "status": "success",
+            "data": {
+                "message": "User created",
+                "api_key": api_key,
+                "usage_limit": DEFAULT_USAGE_LIMIT
+            }
+        }
 
     except PyMongoError as e:
         return {"status": "error", "data": {"message": str(e), "api_key": ""}}
-
 
 
 
@@ -83,8 +99,19 @@ def post_tweet(
     if tweet.username != api_user:
         raise HTTPException(status_code=403, detail="API Key does not match username")
 
-    tweet_id = uuid.uuid4().int >> 96  # Random 32-bit int
+    # Fetch user to check usage
+    user = users_collection.find_one({"username": api_user})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
 
+    usage_count = user.get("usage_count", 0)
+    usage_limit = user.get("usage_limit", 1000)  # default fallback
+
+    if usage_count >= usage_limit:
+        raise HTTPException(status_code=429, detail="API usage limit exceeded")
+
+    # Prepare tweet data
+    tweet_id = uuid.uuid4().int >> 96  # Random 32-bit int
     tweet_record = {
         "id": tweet_id,
         "username": tweet.username,
@@ -99,12 +126,30 @@ def post_tweet(
     }
 
     try:
+        # Insert tweet
         tweets_collection.insert_one(tweet_record)
-        return {"status": "success", "data": {"message": "Tweet posted", "tweet_id": tweet_id }}
-    except PyMongoError as e :
-        return {"status": "error", "data": {"message": f"{str(e)}" }}
 
-
+        # Increment usage
+        users_collection.update_one(
+            {"username": api_user},
+            {"$inc": {"usage_count": 1}}
+        )
+        
+        return {
+            "status": "success",
+            "data": {
+                "message": "Tweet posted",
+                "tweet_id": tweet_id
+            }
+        }
+    
+    except PyMongoError as e:
+        return {
+            "status": "error",
+            "data": {
+                "message": str(e)
+            }
+        }
 
 
 @app.get("/tweets", response_model=TweetsResponse)
@@ -164,13 +209,19 @@ def get_tweet_by_id(tweet_id: int):
     raise HTTPException(status_code=404, detail="Tweet not found")
 
 
-
 @app.post("/process-prompt")
-async def process_request(request: QueryRequest):
+async def process_request(
+    request: QueryRequest,
+    x_api_key: str = Header(..., alias="x-api-key")  # 👈 Custom header
+):
     try:
+        api_key = x_api_key 
+
+        # Pass prompt and api_key to your agent logic
         supervisor = SupervisorAgent()
-        result = await supervisor.process_request(request.prompt)
+        result = await supervisor.process_request(request.prompt, api_key)
         return result
+
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
