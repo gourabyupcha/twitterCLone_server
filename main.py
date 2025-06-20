@@ -8,7 +8,7 @@ import secrets
 import uvicorn
 import uuid
 import random
-from models import UserCreate, TweetCreate, Tweet, TweetsResponse, QueryRequest
+from models import UserCreate, TweetCreate, Tweet, TweetsResponse, QueryRequest, PaginatedTweetsResponse
 from db import users_collection, tweets_collection
 from pymongo.errors import PyMongoError
 from agent import SupervisorAgent
@@ -152,7 +152,7 @@ def post_tweet(
         }
 
 
-@app.get("/tweets", response_model=TweetsResponse)
+@app.get("/tweets", response_model=PaginatedTweetsResponse)
 def get_all_tweets(
     page: int = Query(1, ge=1),
     limit: int = Query(10, ge=1, le=100)
@@ -166,15 +166,21 @@ def get_all_tweets(
             .skip(skip)
             .limit(limit)
         )
-        return TweetsResponse(
+        return PaginatedTweetsResponse(
             status="success",
             count=total,
+            total_pages=(total + limit - 1) // limit,
+            current_page=page,
+            limit=limit,
             data=tweet_docs
         )
     except PyMongoError as e:
         return TweetsResponse(
             status="error",
             count=total,
+            total_pages=(total + limit - 1) // limit,
+            current_page=page,
+            limit=limit,
             data=tweet_docs
         )
 

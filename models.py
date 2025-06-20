@@ -32,3 +32,12 @@ class APIResponse(BaseModel):
     
 class QueryRequest(BaseModel):
     prompt: str
+    
+    
+class PaginatedTweetsResponse(BaseModel):
+    status: str
+    count: int
+    total_pages: int
+    current_page: int
+    limit: int
+    data: List[Tweet]
